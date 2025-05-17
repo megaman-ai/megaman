@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Slack Collector",
+  "version": "1.0.0",
+  "description": "Collect Slack messages and read / search offline.",
+  "action": { "default_popup": "index.html" },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ]
+}
