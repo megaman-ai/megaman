@@ -71,7 +71,7 @@ function App() {
     }
   }
 
-  const openAndCloseThread = async () => {
+  const openThread = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (tab.id) {
@@ -86,16 +86,74 @@ function App() {
                     setTimeout(() => {
                         let threadContentList = document.querySelectorAll('[data-qa="slack_kit_list"].c-virtual_list__scroll_container[role="list"][aria-label^="Thread"] > div');
                         console.log('threadContentList', threadContentList);
-                        let closeButton = document.querySelector('[aria-label="Close"]');
-                        console.log('closeButton', closeButton);
-                        if (closeButton) {
-                            closeButton.click();
-                        }
                     }, 1000);
                 } catch (e) {
                     console.error("Error opening thread:", e);
                 }
             }
+        }
+      });
+    }
+  }
+
+  const scrollUpThread = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.id) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          if (!window.getScrollableParent) {
+            window.getScrollableParent = function (el) {
+              while (el && el !== document.body) {
+                const style = getComputedStyle(el);
+                if (/(auto|scroll)/.test(style.overflowY)) {
+                  return el;
+                }
+                el = el.parentElement;
+              }
+              return null;
+            };
+          }
+          window._myScrollThreadEl = document.querySelector('[data-qa="slack_kit_list"].c-virtual_list__scroll_container[role="list"][aria-label^="Thread"]');
+          if (window._myScrollThreadEl) {
+              const children = window._myScrollThreadEl.children;
+              console.log(children.length);
+              for (let i = 0; i < children.length; i++) {
+                  const child = children[i];
+                  if (child.textContent.trim() !== "") {
+                      console.log(child.textContent);
+                      window._myScrollThreadEl = child;
+                      break;
+                  }
+              }
+              const scrollParent = window.getScrollableParent(window._myScrollThreadEl);
+              console.log(window._myScrollThreadEl.scrollHeight, window._myScrollThreadEl.clientHeight);
+              console.log(scrollParent.scrollHeight, scrollParent.clientHeight);
+              window._myScrollThreadEl = scrollParent;
+
+              const offset = 200;
+              console.log(offset);
+              window._myScrollThreadEl.scrollBy(0, -offset);
+              let event = new MouseEvent('mouseover', { bubbles: true });
+              window._myScrollThreadEl.dispatchEvent(event);
+          }
+        }
+      });
+    }
+  }
+
+  const closeThread = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.id) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          let closeButton = document.querySelector('[aria-label="Close"]');
+          if (closeButton) {
+              closeButton.click();
+          }
         }
       });
     }
@@ -110,8 +168,14 @@ function App() {
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getPostList}>
           Get Post List
         </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={openAndCloseThread}>
-          Open and close thread
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={openThread}>
+          Open thread
+        </button>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={scrollUpThread}>
+          Scroll up thread
+        </button>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={closeThread}>
+          Close thread
         </button>
       </div>
     </>
