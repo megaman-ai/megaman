@@ -1,17 +1,76 @@
 /*global chrome*/
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 import './App.css';
 
-function App() {
+// Status enum to track application state
+const Status = Object.freeze({
+  INITIAL: -1,
+  LOADING: 0,
+  LOADED: 1, 
+  OPEN_THREAD: 2,
+  RETRIEVE_THREAD_LIST: 3,
+  CLOSE_THREAD: 4,
+  NEXT_THREAD: 5,
+  END: 6
+});
 
+function App() {
+  const [status, setStatus] = useState(Status.INITIAL);
   const [postListHtml, setPostListHtml] = useState('');
+  const [threadListHtml, setThreadListHtml] = useState('');
+  const [postItems, setPostItems] = useState([]);
+  const [threadCount, setThreadCount] = useState(0);
+  const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
 
   useEffect(() => {
-    console.log('postListHtml', postListHtml);
+    if (postListHtml) {
+      // Parse the HTML string into a DOM object
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(postListHtml, 'text/html');
+      console.log('doc', doc);
+      
+      // Get all direct children divs from the post list
+      const childDivs = doc.querySelectorAll('body > div > div');
+
+      let reachedEnd = false;
+      
+      // Convert NodeList to Array and extract content
+      const items = Array.from(childDivs).map((div) => {
+        const divId = div.getAttribute('id');
+        if (divId === 'message-list_0000000000.000001') {
+          reachedEnd = true;
+        }
+        return {
+          id: divId,
+          html: div.outerHTML,
+          text: div.textContent.trim()
+        };
+      });
+      setPostItems(items);
+      console.log('Parsed post items:', items);
+
+      if (!reachedEnd) {
+        setTimeout(() => {
+          scrollUpSlack();
+          
+          // Wait for 100ms before getting the post list
+          setTimeout(() => {
+            getPostList();
+          }, 500);
+        }, 100);
+      }
+    } else {
+      setPostItems([]);
+    }
   }, [postListHtml]);
 
+  useEffect(() => {
+    console.log('threadListHtml', threadListHtml);
+  }, [threadListHtml]);
+
   const getPostList = async () => {
+    console.log('getPostList');
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (tab.id) {
@@ -71,30 +130,141 @@ function App() {
     }
   }
 
-  const openThread = async () => {
+  const findThreads = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (tab.id) {
-      await chrome.scripting.executeScript({
+      const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
             window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
             if (window._threadButtonList && window._threadButtonList.length > 0) {
-                try {
-                    const button = window._threadButtonList[0];
-                    button.click();
-                    setTimeout(() => {
-                        let threadContentList = document.querySelectorAll('[data-qa="slack_kit_list"].c-virtual_list__scroll_container[role="list"][aria-label^="Thread"] > div');
-                        console.log('threadContentList', threadContentList);
-                    }, 1000);
-                } catch (e) {
-                    console.error("Error opening thread:", e);
-                }
+              return window._threadButtonList.length;
             }
         }
       });
+      if (results && results[0] && results[0].result) {
+        const threadCount = results[0].result;
+        console.log('threadCount', threadCount);
+        setThreadCount(threadCount);
+        if (currentThreadIndex === -1) {
+          setCurrentThreadIndex(0);
+        } else {
+          setCurrentThreadIndex((prevIndex) => (prevIndex + 1) % threadCount);
+        }
+      } else {
+        setThreadCount(0);
+      }
     }
   }
+
+  useEffect(() => {
+    if (currentThreadIndex === -1) {
+      return;
+    }
+    const openThread = async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (tab.id) {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: async (index) => {
+              window._sleep = function (ms) {
+                  return new Promise(resolve => setTimeout(resolve, ms));
+              }
+              window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
+              if (window._threadButtonList && window._threadButtonList.length > 0) {
+                try {
+                    const button = window._threadButtonList[index];
+                    button.click();
+                } catch (e) {
+                    console.error("Error opening thread:", e);
+                }
+              }
+          },
+          args: [currentThreadIndex]
+        });
+        setStatus(Status.RETRIEVE_THREAD_LIST);
+      }
+    }
+    openThread();
+  }, [currentThreadIndex]);
+
+  const retrieveThreadContent = useCallback(async () => {
+    if (currentThreadIndex === -1) {
+      return;
+    }
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.id) {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: async () => {
+            window._sleep = function (ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            let threadContentList = document.querySelector('[data-qa="slack_kit_list"].c-virtual_list__scroll_container[role="list"][aria-label^="Thread"]');
+            if (threadContentList) {
+              return threadContentList.outerHTML;
+            } else {
+              return null;
+            }
+        }
+      });
+      if (results && results[0] && results[0].result) {
+        setThreadListHtml(results[0].result);
+      }
+      else {
+        setThreadListHtml('');
+      }
+      setStatus(Status.CLOSE_THREAD);
+    }
+  }, [currentThreadIndex]);
+
+  const closeThreadContent = useCallback(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab.id) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          let closeButton = document.querySelector('[aria-label="Close"]');
+          if (closeButton) {
+            closeButton.click();
+          }
+        }
+      });
+      setStatus(Status.NEXT_THREAD);
+    }
+  }, []);
+
+  useEffect(() => {
+    switch (status) {
+      case Status.RETRIEVE_THREAD_LIST:
+        console.log('RETRIEVE_THREAD_LIST');
+        setTimeout(() => {
+          retrieveThreadContent();
+        }, 500);
+        break;
+      case Status.CLOSE_THREAD:
+        console.log('CLOSE_THREAD');
+        setTimeout(() => {
+          closeThreadContent();
+        }, 500);
+        break;
+      case Status.NEXT_THREAD:
+        console.log('NEXT_THREAD');
+        if (currentThreadIndex < (threadCount - 1)) {
+          console.log('open next thread');
+          setCurrentThreadIndex(currentThreadIndex + 1);
+        } else {
+          setStatus(Status.END);
+        }
+        break;
+      case Status.END:
+        console.log('END');
+        break;
+    }
+  }, [status, threadCount, currentThreadIndex, retrieveThreadContent, closeThreadContent, setCurrentThreadIndex]);
 
   const scrollUpThread = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -168,7 +338,7 @@ function App() {
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getPostList}>
           Get Post List
         </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={openThread}>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={findThreads}>
           Open thread
         </button>
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={scrollUpThread}>
