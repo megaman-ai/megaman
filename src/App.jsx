@@ -8,16 +8,16 @@ import './App.css';
 const Status = Object.freeze({
   INITIAL: -1,
   START_COLLECT_POST: 0,
-  LOADED: 1, 
-  START_COLLECT_THREAD: 2,
-  RETRIEVE_THREAD_LIST: 3,
-  CLOSE_THREAD: 4,
-  NEXT_THREAD: 5,
-  WAITING_FOR_PROCESS: 6,
-  END: 7
+  START_COLLECT_THREAD: 1,
+  RETRIEVE_THREAD_LIST: 2,
+  CLOSE_THREAD: 3,
+  NEXT_THREAD: 4,
+  WAITING_FOR_PROCESS: 5,
+  END: 6
 });
 
 function App() {
+  const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState(Status.INITIAL);
   const [channelList, setChannelList] = useState([]);
   const [currentChannel, setCurrentChannel] = useState(null);
@@ -49,6 +49,7 @@ function App() {
   useEffect(() => {
     if (currentChannel) {
       console.log('currentChannel', currentChannel);
+      setCollecting(true);
       setStatus(Status.START_COLLECT_POST);
     }
   }, [currentChannel]);
@@ -366,6 +367,9 @@ function App() {
 
   useEffect(() => {
     switch (status) {
+      case Status.INITIAL:
+        console.log('INITIAL');
+        break;
       case Status.START_COLLECT_POST:
         console.log('START');
         setTimeout(() => {
@@ -403,6 +407,7 @@ function App() {
         console.log('WAITING_FOR_PROCESS');
         break;
       case Status.END:
+        setCollecting(false);
         console.log('END');
         break;
       default:
@@ -466,27 +471,6 @@ function App() {
           if (closeButton) {
               closeButton.click();
           }
-        }
-      });
-    }
-  }
-
-  const openThreadPanel = async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    if (tab.id) {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: async () => {
-            window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
-            if (window._threadButtonList && window._threadButtonList.length > 0) {
-              try {
-                  const button = window._threadButtonList[0];
-                  button.click();
-              } catch (e) {
-                  console.error("Error opening thread:", e);
-              }
-            }
         }
       });
     }
@@ -563,33 +547,30 @@ function App() {
   return (
     <>
       <div className="card">
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={startCollecting}>
-          Start Collecting
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
+          onClick={startCollecting}
+          disabled={collecting}
+        >
+          {collecting ? 'Collecting...' : 'Start Collecting'}
         </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={scrollUpSlack}>
-          Scroll up
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getPostList}>
-          Get Post List
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={findThreads}>
-          Go through threads
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={openThreadPanel}>
-          Open Thread
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getThreadContentList}>
-          Get Thread Content List
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={scrollUpThread}>
-          Scroll up thread
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={closeThread}>
-          Close thread
-        </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getChannelList}>
-          Channel Info
-        </button>
+
+        {collecting && (
+          <div className="mt-4 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <span className="ml-2 text-blue-500 font-semibold">Collection in progress... please don't close this extension.</span>
+          </div>
+        )}
+
+        <div className="mt-2">
+          {status === Status.START_COLLECT_POST && <p>Getting posts...</p>}
+          {status === Status.START_COLLECT_THREAD && <p>Finding threads...</p>}
+          {status === Status.RETRIEVE_THREAD_LIST && <p>Retrieving thread content...</p>}
+          {status === Status.CLOSE_THREAD && <p>Closing thread...</p>}
+          {status === Status.NEXT_THREAD && <p>Moving to next thread...</p>}
+          {status === Status.WAITING_FOR_PROCESS && <p>Processing...</p>}
+          {status === Status.END && <p>Collection complete!</p>}
+        </div>
       </div>
     </>
   )
