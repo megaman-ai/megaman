@@ -31,10 +31,6 @@ function App() {
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
 
   useEffect(() => {
-    getChannelList();
-  }, []);
-
-  useEffect(() => {
     channelList.forEach(async (channel) => {
       try {
         await db.channels.add({
@@ -51,6 +47,14 @@ function App() {
       }
     });
   }, [channelList]);
+
+  useEffect(() => {
+    if (currentChannel) {
+      console.log('currentChannel', currentChannel);
+      setCollecting(true);
+      setStatus(Status.START_COLLECT_POST);
+    }
+  }, [currentChannel]);
 
   useEffect(() => {
     if (postListHtml) {
@@ -539,8 +543,7 @@ function App() {
   };
 
   const startCollecting = async () => {
-    setCollecting(true);
-    setStatus(Status.START_COLLECT_POST);
+    getChannelList();
   };
 
   return (
