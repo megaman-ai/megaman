@@ -6,9 +6,9 @@ import './App.css';
 // Status enum to track application state
 const Status = Object.freeze({
   INITIAL: -1,
-  START: 0,
+  START_COLLECT_POST: 0,
   LOADED: 1, 
-  OPEN_THREAD: 2,
+  START_COLLECT_THREAD: 2,
   RETRIEVE_THREAD_LIST: 3,
   CLOSE_THREAD: 4,
   NEXT_THREAD: 5,
@@ -52,12 +52,7 @@ function App() {
 
       if (!reachedEnd) {
         setTimeout(() => {
-          scrollUpSlack();
-          
-          // Wait for 100ms before getting the post list
-          setTimeout(() => {
-            getPostList();
-          }, 500);
+          setStatus(Status.START_COLLECT_THREAD);
         }, 100);
       }
     } else {
@@ -208,38 +203,60 @@ function App() {
         }
       } else {
         setThreadCount(0);
+        setCurrentThreadIndex(-1);
+        setTimeout(() => {
+          scrollUpSlack();
+          // Wait for 100ms before getting the post list
+          setTimeout(() => {
+            setStatus(Status.START_COLLECT_POST);
+          }, 500);
+        }, 100);
       }
     }
   }
+
+  const openThread = useCallback(async (threadIndex) => {
+    console.log('openThread', threadIndex);
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.id) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: async (index) => {
+            window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
+            if (window._threadButtonList && window._threadButtonList.length > 0) {
+              try {
+                  const button = window._threadButtonList[index];
+                  button.click();
+              } catch (e) {
+                  console.error("Error opening thread:", e);
+              }
+            }
+        },
+        args: [threadIndex]
+      });
+      setStatus(Status.RETRIEVE_THREAD_LIST);
+    }
+  }, [currentThreadIndex, setStatus]);
 
   useEffect(() => {
     if (currentThreadIndex === -1) {
       return;
     }
-    const openThread = async () => {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-      if (tab.id) {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: async (index) => {
-              window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
-              if (window._threadButtonList && window._threadButtonList.length > 0) {
-                try {
-                    const button = window._threadButtonList[index];
-                    button.click();
-                } catch (e) {
-                    console.error("Error opening thread:", e);
-                }
-              }
-          },
-          args: [currentThreadIndex]
-        });
-        setStatus(Status.RETRIEVE_THREAD_LIST);
-      }
+    console.log('currentThreadIndex', currentThreadIndex);
+    if (currentThreadIndex >= threadCount) {
+      console.log('No more threads to process. Should close the thread and go to next post.');
+      setThreadCount(0);
+      setCurrentThreadIndex(-1);
+      scrollUpSlack();
+      // Wait for 100ms before getting the post list
+      setTimeout(() => {
+        setStatus(Status.START_COLLECT_POST);
+      }, 100);
+      return;
     }
-    openThread();
-  }, [currentThreadIndex]);
+    openThread(currentThreadIndex);
+  }, [currentThreadIndex, threadCount, openThread]);
 
   const retrieveThreadContent = useCallback(async () => {
     if (currentThreadIndex === -1) {
@@ -287,17 +304,25 @@ function App() {
 
   useEffect(() => {
     switch (status) {
-      case Status.START:
+      case Status.START_COLLECT_POST:
         console.log('START');
         setTimeout(() => {
           getPostList();
         }, 500);
+        break;
+      case Status.START_COLLECT_THREAD:
+        console.log('START_COLLECT_THREAD');
+        setTimeout(() => {
+          findThreads();
+        }, 500);
+        setStatus(Status.WAITING_FOR_PROCESS);
         break;
       case Status.RETRIEVE_THREAD_LIST:
         console.log('RETRIEVE_THREAD_LIST');
         setTimeout(() => {
           retrieveThreadContent();
         }, 500);
+        setStatus(Status.WAITING_FOR_PROCESS);
         break;
       case Status.CLOSE_THREAD:
         console.log('CLOSE_THREAD');
@@ -307,12 +332,10 @@ function App() {
         break;
       case Status.NEXT_THREAD:
         console.log('NEXT_THREAD');
-        if (currentThreadIndex < (threadCount - 1)) {
-          console.log('open next thread');
+        setTimeout(() => {
           setCurrentThreadIndex(currentThreadIndex + 1);
-        } else {
-          setStatus(Status.END);
-        }
+        }, 500);
+        setStatus(Status.WAITING_FOR_PROCESS);
         break;
       case Status.WAITING_FOR_PROCESS:
         console.log('WAITING_FOR_PROCESS');
@@ -433,7 +456,7 @@ function App() {
   };
 
   const startCollecting = async () => {
-    setStatus(Status.START);
+    setStatus(Status.START_COLLECT_POST);
   };
 
   return (
