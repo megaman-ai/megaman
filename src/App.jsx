@@ -34,6 +34,7 @@ function App() {
         await db.channels.add({
           id: channel.id,
           name: channel.name,
+          team: channel.team
         });
       } catch (error) {
         if (error.name === 'ConstraintError') {
@@ -524,13 +525,15 @@ function App() {
         target: { tabId: tab.id },
         func: () => {
           let channelPanelList = document.querySelectorAll('.p-channel_sidebar__channel');
+          let teamName = document.querySelector('.p-ia4_home_header_menu__team_name');
           if (channelPanelList && channelPanelList.length > 0) {
             const items = Array.from(channelPanelList).map((channel) => {
               const channelId = channel.getAttribute('data-qa-channel-sidebar-channel-id');
               const channelName = channel.textContent.trim();
               return {
                 id: channelId,
-                name: channelName
+                name: channelName,
+                team: teamName ? teamName.textContent.trim() : null
               };
             });
             return items;
