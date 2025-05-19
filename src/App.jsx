@@ -6,7 +6,7 @@ import './App.css';
 // Status enum to track application state
 const Status = Object.freeze({
   INITIAL: -1,
-  LOADING: 0,
+  START: 0,
   LOADED: 1, 
   OPEN_THREAD: 2,
   RETRIEVE_THREAD_LIST: 3,
@@ -287,6 +287,12 @@ function App() {
 
   useEffect(() => {
     switch (status) {
+      case Status.START:
+        console.log('START');
+        setTimeout(() => {
+          getPostList();
+        }, 500);
+        break;
       case Status.RETRIEVE_THREAD_LIST:
         console.log('RETRIEVE_THREAD_LIST');
         setTimeout(() => {
@@ -313,6 +319,9 @@ function App() {
         break;
       case Status.END:
         console.log('END');
+        break;
+      default:
+        console.log('Unknown status:', status);
         break;
     }
   }, [status, threadCount, currentThreadIndex, retrieveThreadContent, closeThreadContent, setCurrentThreadIndex]);
@@ -423,9 +432,16 @@ function App() {
     }
   };
 
+  const startCollecting = async () => {
+    setStatus(Status.START);
+  };
+
   return (
     <>
       <div className="card">
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={startCollecting}>
+          Start Collecting
+        </button>
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={scrollUpSlack}>
           Scroll up
         </button>
