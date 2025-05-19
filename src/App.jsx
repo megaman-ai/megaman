@@ -1,5 +1,6 @@
 /*global chrome*/
 import { useEffect, useState, useCallback } from 'react';
+import db from './db';
 
 import './App.css';
 
@@ -28,9 +29,18 @@ function App() {
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
 
   useEffect(() => {
+    channelList.forEach(async (channel) => {
+      await db.channels.add({
+        name: channel.name,
+        channelId: channel.id
+      });
+    });
+  }, [channelList]);
+
+  useEffect(() => {
     if (currentChannel) {
       console.log('currentChannel', currentChannel);
-      setStatus(Status.START_COLLECT_POST);
+      // setStatus(Status.START_COLLECT_POST);
     }
   }, [currentChannel]);
 
@@ -59,7 +69,11 @@ function App() {
       });
       setPostItems(items);
 
-      if (!reachedEnd) {
+      if (reachedEnd) {
+        setTimeout(() => {
+          setStatus(Status.END);
+        }, 100);
+      } else {
         setTimeout(() => {
           setStatus(Status.START_COLLECT_THREAD);
         }, 100);
@@ -464,8 +478,8 @@ function App() {
     }
   };
 
-  const getChannelName = async () => {
-    console.log('getChannelName');
+  const getChannelList = async () => {
+    console.log('getChannelList');
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab.id) {
       const results = await chrome.scripting.executeScript({
@@ -502,7 +516,7 @@ function App() {
   };
 
   const startCollecting = async () => {
-    getChannelName();
+    getChannelList();
   };
 
   return (
@@ -532,7 +546,7 @@ function App() {
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={closeThread}>
           Close thread
         </button>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getChannelName}>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getChannelList}>
           Channel Info
         </button>
       </div>
