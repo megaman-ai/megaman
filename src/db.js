@@ -4,9 +4,9 @@ import Dexie from 'dexie';
 const db = new Dexie('SlackCollectorDB');
 
 db.version(1).stores({
-  channels: '++id, name, channelId',
-  posts: '++id, channelId, postId, html, text',
-  threads: '++id, channelId, threadId, html, text',
+  channels: 'id, name',
+  posts: 'id, channelId, html',
+  threads: 'id, channelId, html',
 });
 
 export default db;

@@ -30,17 +30,25 @@ function App() {
 
   useEffect(() => {
     channelList.forEach(async (channel) => {
-      await db.channels.add({
-        name: channel.name,
-        channelId: channel.id
-      });
+      try {
+        await db.channels.add({
+          id: channel.id,
+          name: channel.name,
+        });
+      } catch (error) {
+        if (error.name === 'ConstraintError') {
+          console.warn('Key already exists:', error);
+        } else {
+          console.warn('Error adding channel to DB:', error);
+        }
+      }
     });
   }, [channelList]);
 
   useEffect(() => {
     if (currentChannel) {
       console.log('currentChannel', currentChannel);
-      // setStatus(Status.START_COLLECT_POST);
+      setStatus(Status.START_COLLECT_POST);
     }
   }, [currentChannel]);
 
@@ -85,10 +93,40 @@ function App() {
 
   useEffect(() => {
     console.log('postItems', postItems);
+    postItems.forEach(async (item) => {
+      try {
+        await db.posts.add({
+          id: item.id,
+          channelId: currentChannel.id,
+          html: item.html
+        });
+      } catch (error) {
+        if (error.name === 'ConstraintError') {
+          console.warn('Key already exists:', error);
+        } else {
+          console.warn('Error adding channel to DB:', error);
+        }
+      }
+    });
   }, [postItems]);
 
   useEffect(() => {
     console.log('threadContentItems', threadContentItems);
+    threadContentItems.forEach(async (item) => {
+      try {
+        await db.threads.add({
+          id: item.id,
+          channelId: currentChannel.id,
+          html: item.html
+        });
+      } catch (error) {
+        if (error.name === 'ConstraintError') {
+          console.warn('Key already exists:', error);
+        } else {
+          console.warn('Error adding channel to DB:', error);
+        }
+      }
+    });
   }, [threadContentItems]);
 
   useEffect(() => {
