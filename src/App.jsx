@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import db from './db';
 import Header from './components/Header';
+import { exportDBToZip } from './db-exporter';
 
 import './App.css';
 
@@ -571,6 +572,13 @@ function App() {
           {status === Status.WAITING_FOR_PROCESS && <p>Processing...</p>}
           {status === Status.END && <p>Collection complete!</p>}
         </div>
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
+          onClick={exportDBToZip}
+          disabled={collecting}
+        >
+          Export DB to ZIP
+        </button>
       </div>
     </>
   )
