@@ -12,7 +12,8 @@ const Status = Object.freeze({
   RETRIEVE_THREAD_LIST: 3,
   CLOSE_THREAD: 4,
   NEXT_THREAD: 5,
-  END: 6
+  WAITING_FOR_PROCESS: 6,
+  END: 7
 });
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
   const [postListHtml, setPostListHtml] = useState('');
   const [threadListHtml, setThreadListHtml] = useState('');
   const [postItems, setPostItems] = useState([]);
+  const [threadContentItems, setThreadContentItems] = useState([]);
   const [threadCount, setThreadCount] = useState(0);
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
 
@@ -28,7 +30,6 @@ function App() {
       // Parse the HTML string into a DOM object
       const parser = new DOMParser();
       const doc = parser.parseFromString(postListHtml, 'text/html');
-      console.log('doc', doc);
       
       // Get all direct children divs from the post list
       const childDivs = doc.querySelectorAll('body > div > div');
@@ -48,7 +49,6 @@ function App() {
         };
       });
       setPostItems(items);
-      console.log('Parsed post items:', items);
 
       if (!reachedEnd) {
         setTimeout(() => {
@@ -66,7 +66,61 @@ function App() {
   }, [postListHtml]);
 
   useEffect(() => {
-    console.log('threadListHtml', threadListHtml);
+    console.log('postItems', postItems);
+  }, [postItems]);
+
+  useEffect(() => {
+    console.log('threadContentItems', threadContentItems);
+  }, [threadContentItems]);
+
+  useEffect(() => {
+    console.log('parse threadListHtml');
+    if (threadListHtml) {
+      // Parse the HTML string into a DOM object
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(threadListHtml, 'text/html');
+      
+      // Get all direct children divs from the post list
+      const childDivs = doc.querySelectorAll('body > div > div');
+
+      let reachedEnd = false;
+
+      // Convert NodeList to Array and extract content
+      const items = Array.from(childDivs).map((div) => {
+        const divId = div.getAttribute('id');
+        const matches = divId.match(/\d+\.\d+/g);
+        if (matches && matches.length >= 2) {
+          const thread_id = matches[0];
+          const thread_content_id = matches[1];
+          if (thread_id === thread_content_id) {
+            console.log("thread_id and thread_content_id are equal. Reached the top of the thread.");
+            reachedEnd = true;
+          }
+        }
+        return {
+          id: divId,
+          html: div.outerHTML,
+          text: div.textContent.trim()
+        };
+      });
+      setThreadContentItems(items);
+      if (!reachedEnd) {
+        setTimeout(() => {
+          scrollUpThread();
+          
+          // Wait for 100ms before getting the post list
+          setTimeout(() => {
+            getThreadContentList();
+          }, 500);
+        }, 100);
+      } else {
+        setTimeout(() => {
+          closeThread();
+        }, 500);
+      }
+    } else {
+      setThreadContentItems([]);
+    }
   }, [threadListHtml]);
 
   const getPostList = async () => {
@@ -169,9 +223,6 @@ function App() {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: async (index) => {
-              window._sleep = function (ms) {
-                  return new Promise(resolve => setTimeout(resolve, ms));
-              }
               window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
               if (window._threadButtonList && window._threadButtonList.length > 0) {
                 try {
@@ -200,9 +251,6 @@ function App() {
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: async () => {
-            window._sleep = function (ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
             let threadContentList = document.querySelector('[data-qa="slack_kit_list"].c-virtual_list__scroll_container[role="list"][aria-label^="Thread"]');
             if (threadContentList) {
               return threadContentList.outerHTML;
@@ -260,6 +308,9 @@ function App() {
           setStatus(Status.END);
         }
         break;
+      case Status.WAITING_FOR_PROCESS:
+        console.log('WAITING_FOR_PROCESS');
+        break;
       case Status.END:
         console.log('END');
         break;
@@ -298,12 +349,9 @@ function App() {
                   }
               }
               const scrollParent = window.getScrollableParent(window._myScrollThreadEl);
-              console.log(window._myScrollThreadEl.scrollHeight, window._myScrollThreadEl.clientHeight);
-              console.log(scrollParent.scrollHeight, scrollParent.clientHeight);
               window._myScrollThreadEl = scrollParent;
 
               const offset = 200;
-              console.log(offset);
               window._myScrollThreadEl.scrollBy(0, -offset);
               let event = new MouseEvent('mouseover', { bubbles: true });
               window._myScrollThreadEl.dispatchEvent(event);
@@ -329,6 +377,52 @@ function App() {
     }
   }
 
+  const openThreadPanel = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.id) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: async () => {
+            window._threadButtonList = document.querySelectorAll('.c-message__reply_count');
+            if (window._threadButtonList && window._threadButtonList.length > 0) {
+              try {
+                  const button = window._threadButtonList[0];
+                  button.click();
+              } catch (e) {
+                  console.error("Error opening thread:", e);
+              }
+            }
+        }
+      });
+    }
+  }
+
+  const getThreadContentList = async () => {
+    console.log('getThreadContentList');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.id) {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: async () => {
+            let threadContentList = document.querySelector('[data-qa="slack_kit_list"].c-virtual_list__scroll_container[role="list"][aria-label^="Thread"]');
+            if (threadContentList) {
+              return threadContentList.outerHTML;
+            } else {
+              return null;
+            }
+        }
+      });
+      if (results && results[0] && results[0].result) {
+        setThreadListHtml(results[0].result);
+      }
+      else {
+        setThreadListHtml('');
+      }
+    }
+  };
+
   return (
     <>
       <div className="card">
@@ -339,7 +433,13 @@ function App() {
           Get Post List
         </button>
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={findThreads}>
-          Open thread
+          Go through threads
+        </button>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={openThreadPanel}>
+          Open Thread
+        </button>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getThreadContentList}>
+          Get Thread Content List
         </button>
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={scrollUpThread}>
           Scroll up thread
