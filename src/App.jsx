@@ -1,6 +1,7 @@
 /*global chrome*/
 import { useEffect, useState, useCallback } from 'react';
 import db from './db';
+import Header from './components/Header';
 
 import './App.css';
 
@@ -29,6 +30,10 @@ function App() {
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
 
   useEffect(() => {
+    getChannelList();
+  }, []);
+
+  useEffect(() => {
     channelList.forEach(async (channel) => {
       try {
         await db.channels.add({
@@ -45,14 +50,6 @@ function App() {
       }
     });
   }, [channelList]);
-
-  useEffect(() => {
-    if (currentChannel) {
-      console.log('currentChannel', currentChannel);
-      setCollecting(true);
-      setStatus(Status.START_COLLECT_POST);
-    }
-  }, [currentChannel]);
 
   useEffect(() => {
     if (postListHtml) {
@@ -541,12 +538,15 @@ function App() {
   };
 
   const startCollecting = async () => {
-    getChannelList();
+    setCollecting(true);
+    setStatus(Status.START_COLLECT_POST);
   };
 
   return (
     <>
+      <Header title={'Megaman'} />
       <div className="card">
+        <h2 className='text-2xl'>{currentChannel ? `${currentChannel.team} - ${currentChannel.name}` : ''}</h2>
         <button
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
           onClick={startCollecting}
