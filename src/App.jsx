@@ -18,12 +18,21 @@ const Status = Object.freeze({
 
 function App() {
   const [status, setStatus] = useState(Status.INITIAL);
+  const [channelList, setChannelList] = useState([]);
+  const [currentChannel, setCurrentChannel] = useState(null);
   const [postListHtml, setPostListHtml] = useState('');
   const [threadListHtml, setThreadListHtml] = useState('');
   const [postItems, setPostItems] = useState([]);
   const [threadContentItems, setThreadContentItems] = useState([]);
   const [threadCount, setThreadCount] = useState(0);
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
+
+  useEffect(() => {
+    if (currentChannel) {
+      console.log('currentChannel', currentChannel);
+      setStatus(Status.START_COLLECT_POST);
+    }
+  }, [currentChannel]);
 
   useEffect(() => {
     if (postListHtml) {
@@ -455,8 +464,45 @@ function App() {
     }
   };
 
+  const getChannelName = async () => {
+    console.log('getChannelName');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab.id) {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          let channelPanelList = document.querySelectorAll('.p-channel_sidebar__channel');
+          if (channelPanelList && channelPanelList.length > 0) {
+            const items = Array.from(channelPanelList).map((channel) => {
+              const channelId = channel.getAttribute('data-qa-channel-sidebar-channel-id');
+              const channelName = channel.textContent.trim();
+              return {
+                id: channelId,
+                name: channelName
+              };
+            });
+            return items;
+          } else {
+            return null;
+          }
+        }
+      });
+      if (results && results[0] && results[0].result) {
+        const channelInfo = results[0].result;
+        setChannelList(channelInfo);
+        channelInfo.forEach((channel) => {
+          if (tab.url.includes(channel.id)) {
+            setCurrentChannel(channel);
+          }
+        });
+      } else {
+        console.log('No channel information found.');
+      }
+    }
+  };
+
   const startCollecting = async () => {
-    setStatus(Status.START_COLLECT_POST);
+    getChannelName();
   };
 
   return (
@@ -485,6 +531,9 @@ function App() {
         </button>
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={closeThread}>
           Close thread
+        </button>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded" onClick={getChannelName}>
+          Channel Info
         </button>
       </div>
     </>
