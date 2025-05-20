@@ -1,6 +1,6 @@
 /*global chrome*/
 import Header from './components/main/Header';
-import Messenger from './components/messenger/Messenger';
+import Messenger from './components/main/messenger/Messenger';
 
 import './App.css';
 

@@ -3,7 +3,7 @@ import db from '../../../db';
 import PostItem from './PostItem';
 import './Messenger.css';
 
-const PostList = ({ selectedChannel }) => {
+const PostList = ({ selectedChannel, handleSelectThread }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const postsContainerRef = useRef(null);
@@ -78,7 +78,7 @@ const PostList = ({ selectedChannel }) => {
           ) : (
             <div className="posts-container" ref={postsContainerRef}>
               {posts.map(post => (
-                <PostItem key={post.id} post={post} />
+                <PostItem key={post.id} post={post} handleSelectThread={handleSelectThread} />
               ))}
             </div>
           )}

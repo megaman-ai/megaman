@@ -81,6 +81,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .post-list h2 {
@@ -145,6 +146,141 @@
   font-size: 16px;
   text-align: center;
   padding: 20px;
+}
+
+/* Thread List Component */
+.content-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.post-list-container {
+  width: 60%;
+  border-right: 1px solid #e3e8ef;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.post-list-container.full-width {
+  width: 100%;
+  border-right: none;
+}
+
+.thread-list-container {
+  width: 40%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.thread-list {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.thread-list h2 {
+  font-size: 18px;
+  color: #4a5568;
+}
+
+.threads-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100% - 60px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.thread-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #f8fafc;
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.thread-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.thread-content {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  text-align: left;
+  white-space: pre-line;
+  margin-bottom: 8px;
+}
+
+.thread-meta {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 12px;
+  color: #718096;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 8px;
+}
+
+.no-threads,
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 60px);
+  color: #718096;
+  font-size: 16px;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Thread Header Component */
+.thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e3e8ef;
+}
+
+.thread-header h2 {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Close Button */
+.thread-close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #718096;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.thread-close-button:hover {
+  color: #4a5568;
+  background-color: #f7fafc;
+}
+
+.thread-close-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 /* Responsive adjustments */
