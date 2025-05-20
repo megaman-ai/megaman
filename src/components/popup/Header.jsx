@@ -1,7 +1,5 @@
-// filepath: /Users/zhengxu/workspace/megaman.ai/megaman/src/components/Header.jsx
-import React from 'react';
-import iconImage from '../assets/icon.png';
-import '../App.css';
+import iconImage from '../../assets/icon.png';
+import '../../AppPopup.css';
 
 const Header = ({ title = 'Megaman' }) => {
   return (

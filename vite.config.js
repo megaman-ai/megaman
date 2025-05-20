@@ -8,4 +8,17 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    target: "esnext",
+    outDir: 'dist',
+    rollupOptions: {
+      input: {
+        index: 'index.html',
+        main: 'main.html'
+      },
+      output: {
+        entryFileNames: 'assets/[name].js'
+      }
+    },
+  },
 })
