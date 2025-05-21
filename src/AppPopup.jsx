@@ -61,12 +61,12 @@ function AppPopup() {
       // Parse the HTML string into a DOM object
       const parser = new DOMParser();
       const doc = parser.parseFromString(postListHtml, 'text/html');
-      
+
       // Get all direct children divs from the post list
       const childDivs = doc.querySelectorAll('body > div > div');
 
       let reachedEnd = false;
-      
+
       // Convert NodeList to Array and extract content
       const items = Array.from(childDivs).map((div) => {
         const divId = div.getAttribute('id');
@@ -139,7 +139,7 @@ function AppPopup() {
       // Parse the HTML string into a DOM object
       const parser = new DOMParser();
       const doc = parser.parseFromString(threadListHtml, 'text/html');
-      
+
       // Get all direct children divs from the post list
       const childDivs = doc.querySelectorAll('body > div > div');
 
@@ -167,7 +167,7 @@ function AppPopup() {
       if (!reachedEnd) {
         setTimeout(() => {
           scrollUpThread();
-          
+
           // Wait for 100ms before getting the post list
           setTimeout(() => {
             getThreadContentList();
@@ -552,6 +552,114 @@ function AppPopup() {
     });
   }
 
+  const importDBFromZip = async () => {
+    // Create a file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.zip';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    // Handle file selection
+    fileInput.onchange = async (event) => {
+      try {
+        const file = event.target.files[0];
+        if (!file) {
+          console.log('No file selected');
+          return;
+        }
+
+        if (!file.name.endsWith('.zip')) {
+          alert('Please select a valid ZIP file');
+          return;
+        }
+
+        setCollecting(true); // Show the loading spinner
+        setStatus(Status.INITIAL); // Reset status but keep collecting=true for the spinner
+
+        // Read the zip file
+        const JSZip = await import('jszip');
+        const zip = new JSZip.default();
+        const content = await zip.loadAsync(file);
+
+        // Process each table
+        const tables = ['channels', 'posts', 'threads'];
+        const importResults = {};
+
+        for (const tableName of tables) {
+          const fileName = `${tableName}.json`;
+          if (!content.files[fileName]) {
+            console.warn(`File ${fileName} not found in zip`);
+            importResults[tableName] = { status: 'error', message: 'File not found in zip' };
+            continue;
+          }
+
+          try {
+            // Read the JSON data
+            const jsonData = await content.files[fileName].async('text');
+            const recordsArray = JSON.parse(jsonData);
+
+            if (!Array.isArray(recordsArray)) {
+              console.warn(`Invalid data format in ${fileName}`);
+              importResults[tableName] = { status: 'error', message: 'Invalid data format' };
+              continue;
+            }
+
+            // Clear the table before import
+            await db.table(tableName).clear();
+
+            // Import records in batches to improve performance
+            let addedCount = 0;
+            const batchSize = 100;
+
+            for (let i = 0; i < recordsArray.length; i += batchSize) {
+              const batch = recordsArray.slice(i, i + batchSize);
+              await db.table(tableName).bulkAdd(batch);
+              addedCount += batch.length;
+            }
+
+            importResults[tableName] = {
+              status: 'success',
+              count: addedCount
+            };
+            console.log(`Imported ${addedCount} records into ${tableName}`);
+          } catch (tableError) {
+            console.error(`Error importing table ${tableName}:`, tableError);
+            importResults[tableName] = { status: 'error', message: tableError.message };
+          }
+        }
+
+        // Calculate import summary
+        const totalSuccess = Object.values(importResults)
+          .filter(result => result.status === 'success')
+          .length;
+
+        // Update the UI
+        if (totalSuccess === tables.length) {
+          alert(`Import completed successfully:\n${Object.entries(importResults).map(([table, result]) =>
+            `${table}: ${result.count} records imported`
+          ).join('\n')}`);
+        } else {
+          const summary = Object.entries(importResults).map(([table, result]) =>
+            `${table}: ${result.status === 'success' ? `${result.count} records imported` : `Failed - ${result.message}`}`
+          ).join('\n');
+
+          alert(`Import completed with some issues:\n${summary}`);
+        }
+
+      } catch (error) {
+        console.error('Error importing database:', error);
+        alert(`Import failed: ${error.message}`);
+      } finally {
+        document.body.removeChild(fileInput);
+        setCollecting(false);
+      }
+    };
+
+    // Trigger the file input dialog
+    fileInput.click();
+  };
+
   return (
     <>
       <Header title={'Megaman'} />
@@ -594,6 +702,13 @@ function AppPopup() {
           disabled={collecting}
         >
           Export DB to ZIP
+        </button>
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
+          onClick={importDBFromZip}
+          disabled={collecting}
+        >
+          Import DB from ZIP
         </button>
       </div>
     </>
