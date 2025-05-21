@@ -78,7 +78,7 @@ const ThreadList = ({ thread_id, selectedChannel, onClose }) => {
       ) : (
         <div className="threads-container" ref={threadsContainerRef}>
           {threads.map(thread => (
-            <div key={thread.id} className="thread-item">
+            <div key={thread.id}>
               <ThreadItem thread={thread} />
             </div>
           ))}

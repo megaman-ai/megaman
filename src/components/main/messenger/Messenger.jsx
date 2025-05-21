@@ -2,12 +2,12 @@ import { useState } from 'react';
 import ChannelList from './ChannelList';
 import PostList from './PostList';
 import ThreadList from './ThreadList';
-import db from '../../../db';
 import './Messenger.css';
 
 const Messenger = () => {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
+
 
   const handleSelectChannel = (channel) => {
     setSelectedChannel(channel);
