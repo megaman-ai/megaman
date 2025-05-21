@@ -1,17 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ChannelList from './ChannelList';
 import PostList from './PostList';
 import ThreadList from './ThreadList';
+import db from '../../../db';
 import './Messenger.css';
 
 const Messenger = () => {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // Read channelId from URL parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const channelId = queryParams.get('channelId');
+    
+    if (channelId) {
+      setLoading(true);
+      
+      // Fetch the channel from the database
+      db.channels
+        .where('id')
+        .equals(channelId)
+        .first()
+        .then(channel => {
+          if (channel) {
+            setSelectedChannel(channel);
+            console.log(`Selected channel from URL: ${channel.name}`);
+          } else {
+            console.warn(`Channel with ID ${channelId} not found`);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching channel:", error);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, []);
 
   const handleSelectChannel = (channel) => {
     setSelectedChannel(channel);
     setSelectedThreadId(null); // Reset thread selection when changing channels
+    
+    // Update URL with the selected channel ID
+    if (channel && channel.id) {
+      const url = new URL(window.location);
+      url.searchParams.set('channelId', channel.id);
+      window.history.pushState({}, '', url);
+    }
   };
 
   const handleSelectThread = async (postId) => {
@@ -36,15 +74,21 @@ const Messenger = () => {
         />
       </div>
       <div className="messenger-content">
-        <div className="content-container">
-          <div className={`post-list-container ${!selectedThreadId ? 'full-width' : ''}`}>
-            <PostList 
-              selectedChannel={selectedChannel} 
-              handleSelectThread={handleSelectThread} 
-            />
+        {loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading channel data...</p>
           </div>
-          {selectedThreadId && (
-            <div className="thread-list-container">
+        ) : (
+          <div className="content-container">
+            <div className={`post-list-container ${!selectedThreadId ? 'full-width' : ''}`}>
+              <PostList 
+                selectedChannel={selectedChannel} 
+                handleSelectThread={handleSelectThread} 
+              />
+            </div>
+            {selectedThreadId && (
+              <div className="thread-list-container">
               <ThreadList 
                 thread_id={selectedThreadId} 
                 selectedChannel={selectedChannel}
@@ -53,6 +97,7 @@ const Messenger = () => {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

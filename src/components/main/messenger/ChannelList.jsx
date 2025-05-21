@@ -34,9 +34,8 @@ const ChannelList = ({ onSelectChannel, selectedChannel }) => {
             <li 
               key={channel.id} 
               className={selectedChannel?.id === channel.id ? 'active' : ''}
-              onClick={() => onSelectChannel(channel)}
             >
-              <span className="channel-name"># {channel.name}</span>
+              <a href={`?channelId=${channel.id}`} className="channel-link"><span className="channel-name"># {channel.name}</span> </a>
             </li>
           ))}
         </ul>
