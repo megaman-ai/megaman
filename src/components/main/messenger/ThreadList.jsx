@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import db from '../../../db';
+import ThreadItem from './ThreadItem';
 import './Messenger.css';
 
 const ThreadList = ({ thread_id, selectedChannel, onClose }) => {
@@ -58,18 +59,6 @@ const ThreadList = ({ thread_id, selectedChannel, onClose }) => {
     loadThreads();
   }, [thread_id, selectedChannel]);
   
-  // Parse HTML to extract only text content
-  const extractTextContent = (html) => {
-    if (!html) return "";
-    
-    // Create a temporary DOM element
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    // Extract text content and remove extra whitespace
-    return doc.body.textContent || doc.body.innerText || "";
-  };
-  
   return (
     <div className="thread-list">
       <div className="thread-header">
@@ -90,12 +79,7 @@ const ThreadList = ({ thread_id, selectedChannel, onClose }) => {
         <div className="threads-container" ref={threadsContainerRef}>
           {threads.map(thread => (
             <div key={thread.id} className="thread-item">
-              <div className="thread-content">
-                {extractTextContent(thread.html)}
-              </div>
-              <div className="thread-meta">
-                <small>ID: {thread.id}</small>
-              </div>
+              <ThreadItem thread={thread} />
             </div>
           ))}
         </div>
