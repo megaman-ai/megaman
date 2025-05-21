@@ -4,6 +4,32 @@ const PostItem = ({ post, handleSelectThread }) => {
   const [hasThreadButton, setHasThreadButton] = useState(false);
   const [text, setText] = useState("");
   const [sender, setSender] = useState("");
+  const [timestamp, setTimestamp] = useState("");
+
+  useEffect(() => {
+    const matches = post.id.match(/\d+\.\d+/g);
+    if (matches && matches.length >= 1) {
+      // Convert Slack timestamp to local time
+      // Format: 1747583770.000029 (seconds.microseconds since epoch)
+      const timestampParts = matches[0].split('.');
+      if (timestampParts.length > 0) {
+        const seconds = parseInt(timestampParts[0], 10);
+        const date = new Date(seconds * 1000); // Convert seconds to milliseconds
+        
+        // Format the date as a readable string
+        const formattedDate = date.toLocaleString(undefined, {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        setTimestamp(formattedDate);
+      }
+    }
+  }, [post]);
 
   useEffect(() => {
     const parser = new DOMParser();
@@ -24,23 +50,22 @@ const PostItem = ({ post, handleSelectThread }) => {
   }, [post.html]);
   
   return (
-    <div className="post-item">
-      {sender && sender.length > 1 && <div className="post-header">
-        <strong>{sender}</strong>
+    <div>
+      {sender && sender.length > 1 && <div className="text-left">
+        <strong>{sender}</strong> <span className="m-2">{timestamp && <small className="post-timestamp">{timestamp}</small>}</span>
       </div>}
       <div className="post-content">
         {text}
       </div>
-      <div className="post-meta">
-        {hasThreadButton && (
+      {hasThreadButton && (
+      <div className="text-left">
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 mx-2 rounded"
+            className="bg-white text-blue-500 font-bold my-1 cursor-pointer"
             onClick={() => handleSelectThread(post.id)}>
-            View Thread
+            View Thread &gt;&gt;
           </button>
-        )}
-        <small>ID: {post.id}</small>
       </div>
+      )}
     </div>
   )
 }

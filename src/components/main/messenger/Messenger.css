@@ -101,10 +101,12 @@
 }
 
 .post-header {
-  font-size: 16px;
-  color: #4a5568;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  font-size: 14px;
   text-align: left;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #2d3748;
 } 
 
 .post-item {
@@ -139,6 +141,22 @@
   color: #718096;
   border-top: 1px dashed #e2e8f0;
   padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.post-meta-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 4px;
+}
+
+.post-timestamp {
+  font-style: italic;
+  color: #64748b;
+  margin-bottom: 2px;
 }
 
 .no-channel-selected,
