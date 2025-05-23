@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // Added useRef
 import ChannelList from './ChannelList';
 import PostList from './PostList';
 import ThreadList from './ThreadList';
@@ -13,6 +13,7 @@ const Messenger = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [lastSelectedChannelBeforeSearch, setLastSelectedChannelBeforeSearch] = useState(null);
+  const [scrollToPostId, setScrollToPostId] = useState(null); // New state for scrolling
 
   // Read channelId from URL parameters
   useEffect(() => {
@@ -108,13 +109,52 @@ const Messenger = () => {
   const handleClearSearch = () => {
     setSearchTerm("");
     setSearchResults([]);
-    setSelectedChannel(lastSelectedChannelBeforeSearch);
+    // Restore the channel that was active before the search
+    if (lastSelectedChannelBeforeSearch) {
+      setSelectedChannel(lastSelectedChannelBeforeSearch);
+    } else {
+      // If no channel was active before search (e.g. fresh load and search),
+      // potentially clear selectedChannel or set to a default
+      // For now, let's assume we want to clear it if no last channel was stored.
+      // Or, if there was a channel in URL, that useEffect would kick in.
+      // This part might need refinement based on desired UX for edge cases.
+      setSelectedChannel(null); 
+    }
     setLastSelectedChannelBeforeSearch(null);
-    // If there was a thread open from the search results, it should naturally close
-    // as selectedChannel changes and PostList re-evaluates.
-    // If a thread was open from the original channel, selectedThreadId might need reset if it was tied to search.
-    // For now, assume thread selection is reset when channel changes or search happens.
     setSelectedThreadId(null); 
+    setScrollToPostId(null); // Clear scroll target
+  };
+
+  const handleSearchResultItemClick = async (post) => {
+    if (!post || !post.channelId) return;
+
+    setLoading(true);
+    try {
+      const channel = await db.channels.get(post.channelId);
+      if (channel) {
+        setSelectedChannel(channel);
+        setSearchTerm("");
+        setSearchResults([]);
+        setLastSelectedChannelBeforeSearch(null);
+        setSelectedThreadId(null); // Close any open thread from search view
+        setScrollToPostId(post.id); // Set the post ID to scroll to
+
+        // Update URL with the selected channel ID
+        const url = new URL(window.location);
+        url.searchParams.set('channelId', channel.id);
+        window.history.pushState({}, '', url);
+
+      } else {
+        console.warn(`Channel with ID ${post.channelId} not found for the post.`);
+        // Fallback: just clear search and stay, or clear to default view
+        handleClearSearch();
+      }
+    } catch (error) {
+      console.error("Error fetching channel for search result click:", error);
+      handleClearSearch(); // Clear search on error
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -154,6 +194,7 @@ const Messenger = () => {
           <SearchResultsList 
             searchResults={searchResults} 
             handleSelectThread={handleSelectThread} 
+            onSearchResultClick={handleSearchResultItemClick} // Pass the handler
           />
         ) : (
           <div className="content-container">
@@ -161,6 +202,7 @@ const Messenger = () => {
               <PostList 
                 selectedChannel={selectedChannel} 
                 handleSelectThread={handleSelectThread} 
+                scrollToPostId={scrollToPostId} // Pass scrollToPostId
               />
             </div>
             {selectedThreadId && (

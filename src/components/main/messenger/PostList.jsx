@@ -3,10 +3,11 @@ import db from '../../../db';
 import PostItem from './PostItem';
 import './Messenger.css';
 
-const PostList = ({ selectedChannel, handleSelectThread }) => {
+const PostList = ({ selectedChannel, handleSelectThread, scrollToPostId }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const postsContainerRef = useRef(null);
+  console.log(`scrollToPostId: ${scrollToPostId}`);
   
   // Scroll to bottom when posts are loaded
   useEffect(() => {
