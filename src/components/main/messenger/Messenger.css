@@ -11,7 +11,7 @@
 
 /* Channel Sidebar - 40% width */
 .messenger-sidebar {
-  width: 10%;
+  width: 30%;
   background-color: #f5f7fa;
   border-right: 1px solid #e3e8ef;
   overflow-y: auto;
@@ -19,7 +19,7 @@
 
 /* Content Area - 60% width */
 .messenger-content {
-  width: 90%;
+  width: 70%;
   overflow-y: auto;
   background-color: #fff;
 }
