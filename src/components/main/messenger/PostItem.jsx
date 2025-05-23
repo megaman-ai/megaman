@@ -5,6 +5,7 @@ const PostItem = ({ post, handleSelectThread }) => {
   const [text, setText] = useState("");
   const [sender, setSender] = useState("");
   const [timestamp, setTimestamp] = useState("");
+  const [avatarSrc, setAvatarSrc] = useState("");
 
   useEffect(() => {
     const matches = post.id.match(/\d+\.\d+/g);
@@ -37,6 +38,11 @@ const PostItem = ({ post, handleSelectThread }) => {
     const threadButton = doc.querySelector('.c-message__reply_bar_view_thread');
     const textDiv = doc.querySelector('.c-message__message_blocks');
     const senderSpan = doc.querySelector('.c-message__sender > .p-member_profile_hover_card');
+    const avatar = doc.querySelector('.c-avatar img');
+    const imageSrc = avatar ? avatar.src : null;
+    if (imageSrc) {
+      setAvatarSrc(imageSrc);
+    }
     let text = doc.body.textContent || doc.body.innerText || ""
     if (textDiv) {
       text = textDiv.textContent;
@@ -51,7 +57,8 @@ const PostItem = ({ post, handleSelectThread }) => {
   
   return (
     <div>
-      {sender && sender.length > 1 && <div className="text-left">
+      {sender && sender.length > 1 && <div className="text-left flex items-center">
+        {avatarSrc && <img src={avatarSrc} alt="avatar" className="w-8 h-8 rounded-full mr-2" />}
         <strong>{sender}</strong> <span className="m-2">{timestamp && <small className="post-timestamp">{timestamp}</small>}</span>
       </div>}
       <div className="post-content">
