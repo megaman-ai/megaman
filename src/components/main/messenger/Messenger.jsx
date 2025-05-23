@@ -12,6 +12,7 @@ const Messenger = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [lastSelectedChannelBeforeSearch, setLastSelectedChannelBeforeSearch] = useState(null);
 
   // Read channelId from URL parameters
   useEffect(() => {
@@ -48,6 +49,7 @@ const Messenger = () => {
     setSelectedThreadId(null); // Reset thread selection when changing channels
     setSearchResults([]); // Clear search results when selecting a channel
     setSearchTerm(""); // Clear search term
+    setLastSelectedChannelBeforeSearch(null); // Clear last selected channel before search
     
     // Update URL with the selected channel ID
     if (channel && channel.id) {
@@ -78,8 +80,8 @@ const Messenger = () => {
     if (event.key === 'Enter' && searchTerm.trim() !== '') {
       console.log('Searching for:', searchTerm);
       setLoading(true);
-      // Clear existing selections
-      setSelectedChannel(null);
+      setLastSelectedChannelBeforeSearch(selectedChannel); // Store current channel
+      setSelectedChannel(null); // Clear current channel for search results view
       setSelectedThreadId(null);
       setSearchResults([]); // Clear previous search results
       try {
@@ -103,18 +105,39 @@ const Messenger = () => {
     }
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setSearchResults([]);
+    setSelectedChannel(lastSelectedChannelBeforeSearch);
+    setLastSelectedChannelBeforeSearch(null);
+    // If there was a thread open from the search results, it should naturally close
+    // as selectedChannel changes and PostList re-evaluates.
+    // If a thread was open from the original channel, selectedThreadId might need reset if it was tied to search.
+    // For now, assume thread selection is reset when channel changes or search happens.
+    setSelectedThreadId(null); 
+  };
+
   return (
     <div className="messenger-container">
       <div className="messenger-sidebar">
-        <div className="p-2">
+        <div className="p-2 relative">
           <input
             type="text"
             placeholder="Search messages..."
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded pr-8" // Added pr-8 for X button space
             value={searchTerm}
             onChange={handleSearchChange}
             onKeyDown={handleSearchSubmit}
           />
+          {searchTerm && (
+            <button 
+              onClick={handleClearSearch}
+              className="absolute right-0 top-0 mt-2 mr-3 text-gray-500 hover:text-gray-700 p-2 focus:outline-none"
+              aria-label="Clear search"
+            >
+              &#x2715; {/* This is a Unicode 'X' character */}
+            </button>
+          )}
         </div>
         <ChannelList 
           onSelectChannel={handleSelectChannel} 
