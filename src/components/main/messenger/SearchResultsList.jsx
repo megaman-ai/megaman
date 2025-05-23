@@ -10,7 +10,9 @@ const SearchResultsList = ({ searchResults, handleSelectThread }) => {
     <div className="search-results-list p-4">
       <h2 className="text-xl font-bold mb-4">Search Results</h2>
       {searchResults.map(post => (
-        <PostItem key={post.id} post={post} handleSelectThread={handleSelectThread} />
+        <div key={post.id} className="border border-gray-300 rounded-md p-3 mb-3">
+          <PostItem post={post} handleSelectThread={handleSelectThread} />
+        </div>
       ))}
     </div>
   );
