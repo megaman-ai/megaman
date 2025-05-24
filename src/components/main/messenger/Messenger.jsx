@@ -19,6 +19,7 @@ const Messenger = () => {
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const channelId = queryParams.get('channelId');
+    const postId = queryParams.get('postId');
     
     if (channelId) {
       setLoading(true);
@@ -42,6 +43,9 @@ const Messenger = () => {
         .finally(() => {
           setLoading(false);
         });
+      if (postId) {
+        setScrollToPostId(postId);
+      }
     }
   }, []);
 
