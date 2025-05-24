@@ -56,7 +56,7 @@ const PostItem = forwardRef(({ post, handleSelectThread }, ref) => { // Wrapped 
   }, [post.html]);
   
   return (
-    <div ref={ref}> {/* Added ref to the root div */}
+    <div ref={ref} data-id={post.id}> {/* Added ref to the root div */}
       {sender && sender.length > 1 && <div className="text-left flex items-center">
         {avatarSrc && <img src={avatarSrc} alt="avatar" className="w-8 h-8 rounded-full mr-2" />}
         <strong>{sender}</strong>
