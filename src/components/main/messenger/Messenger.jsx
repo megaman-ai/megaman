@@ -32,7 +32,6 @@ const Messenger = () => {
         .then(channel => {
           if (channel) {
             setSelectedChannel(channel);
-            console.log(`Selected channel from URL: ${channel.name}`);
           } else {
             console.warn(`Channel with ID ${channelId} not found`);
           }
@@ -69,7 +68,6 @@ const Messenger = () => {
     if (matches && matches.length >= 1) {
       const thread_id = matches[0];
       setSelectedThreadId(thread_id);
-      console.log(`Opening thread for post ID: ${thread_id}`);
     }
   }
   
@@ -83,7 +81,6 @@ const Messenger = () => {
 
   const handleSearchSubmit = async (event) => {
     if (event.key === 'Enter' && searchTerm.trim() !== '') {
-      console.log('Searching for:', searchTerm);
       setLoading(true);
       setLastSelectedChannelBeforeSearch(selectedChannel); // Store current channel
       setSelectedChannel(null); // Clear current channel for search results view
@@ -100,7 +97,6 @@ const Messenger = () => {
         // We also need to decide how to display these results.
         // This example will just store them in searchResults.
         setSearchResults(posts); 
-        console.log('Search results:', posts);
       } catch (error) {
         console.error("Error during search:", error);
         setSearchResults([]);

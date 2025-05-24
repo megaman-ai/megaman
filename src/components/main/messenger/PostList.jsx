@@ -82,7 +82,7 @@ const PostList = ({ selectedChannel, handleSelectThread, scrollToPostId }) => {
           ) : (
             <div className="posts-container" ref={postsContainerRef}>
               {posts.map(post => (
-                <PostItem key={post.id} post={post} handleSelectThread={handleSelectThread}/>
+                <PostItem key={post.id} post={post} handleSelectThread={handleSelectThread} isHighlighted={post.id === scrollToPostId}/>
               ))}
             </div>
           )}

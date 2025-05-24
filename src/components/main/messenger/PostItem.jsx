@@ -1,11 +1,22 @@
-import React, { useEffect, useState, forwardRef } from 'react'; // Added forwardRef
+import React, { useEffect, useState, forwardRef } from 'react';
 
-const PostItem = forwardRef(({ post, handleSelectThread }, ref) => { // Wrapped with forwardRef and added ref parameter
+const PostItem = ({ post, handleSelectThread, isHighlighted }) => {
   const [hasThreadButton, setHasThreadButton] = useState(false);
   const [text, setText] = useState("");
   const [sender, setSender] = useState("");
   const [timestamp, setTimestamp] = useState("");
   const [avatarSrc, setAvatarSrc] = useState("");
+  const [internallyHighlighted, setInternallyHighlighted] = useState(false);
+
+  useEffect(() => {
+    if (isHighlighted) {
+      setInternallyHighlighted(true);
+      const timer = setTimeout(() => {
+        setInternallyHighlighted(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isHighlighted]);
 
   useEffect(() => {
     const matches = post.id.match(/\d+\.\d+/g);
@@ -56,7 +67,10 @@ const PostItem = forwardRef(({ post, handleSelectThread }, ref) => { // Wrapped 
   }, [post.html]);
   
   return (
-    <div ref={ref} data-id={post.id}> {/* Added ref to the root div */}
+    <div 
+      data-id={post.id} 
+      className={`${internallyHighlighted ? 'bg-yellow-200' : ''} transition-colors duration-500`} // Apply conditional background and transition
+    >
       {sender && sender.length > 1 && <div className="text-left flex items-center">
         {avatarSrc && <img src={avatarSrc} alt="avatar" className="w-8 h-8 rounded-full mr-2" />}
         <strong>{sender}</strong>
@@ -78,6 +92,6 @@ const PostItem = forwardRef(({ post, handleSelectThread }, ref) => { // Wrapped 
       )}
     </div>
   )
-})
+}
 
 export default PostItem;
