@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import db from '../../../db';
+import db from '../../../db/db';
 import './Messenger.css';
 
 const ChannelList = ({ onSelectChannel, selectedChannel }) => {
@@ -9,7 +9,7 @@ const ChannelList = ({ onSelectChannel, selectedChannel }) => {
   useEffect(() => {
     const loadChannels = async () => {
       try {
-        const allChannels = await db.channels.toArray();
+        const allChannels = await db.messengerChannels.toArray();
         setChannels(allChannels);
       } catch (error) {
         console.error('Error loading channels:', error);

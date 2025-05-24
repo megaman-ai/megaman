@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import db from '../../../db';
+import db from '../../../db/db';
 import ThreadItem from './ThreadItem';
 import './Messenger.css';
 
@@ -27,7 +27,7 @@ const ThreadList = ({ thread_id, selectedChannel, onClose }) => {
       setLoading(true);
       try {
         // Query threads where id includes the thread_id string
-        const threadResults = await db.threads
+        const threadResults = await db.messengerThreads
           .filter(thread => 
             String(thread.id).includes(thread_id) && 
             thread.channelId === selectedChannel.id

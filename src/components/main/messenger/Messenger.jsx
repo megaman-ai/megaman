@@ -3,7 +3,7 @@ import ChannelList from './ChannelList';
 import PostList from './PostList';
 import ThreadList from './ThreadList';
 import SearchResultsList from './SearchResultsList'; // Added import
-import db from '../../../db';
+import db from '../../../db/db';
 import './Messenger.css';
 
 const Messenger = () => {
@@ -25,7 +25,7 @@ const Messenger = () => {
       setLoading(true);
       
       // Fetch the channel from the database
-      db.channels
+      db.messengerChannels
         .where('id')
         .equals(channelId)
         .first()
@@ -87,7 +87,7 @@ const Messenger = () => {
       setSelectedThreadId(null);
       setSearchResults([]); // Clear previous search results
       try {
-        const posts = await db.posts
+        const posts = await db.messengerPosts
           .filter(post => post.html.toLowerCase().includes(searchTerm.toLowerCase()))
           .toArray();
         
@@ -130,7 +130,7 @@ const Messenger = () => {
 
     setLoading(true);
     try {
-      const channel = await db.channels.get(post.channelId);
+      const channel = await db.messengerChannels.get(post.channelId);
       if (channel) {
         setSelectedChannel(channel);
         setSearchTerm("");

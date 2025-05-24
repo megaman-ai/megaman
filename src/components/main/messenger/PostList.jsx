@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import db from '../../../db';
+import db from '../../../db/db';
 import PostItem from './PostItem';
 import './Messenger.css';
 
@@ -30,7 +30,7 @@ const PostList = ({ selectedChannel, handleSelectThread, scrollToPostId }) => {
 
       setLoading(true);
       try {
-        const channelPosts = await db.posts
+        const channelPosts = await db.messengerPosts
           .where('channelId')
           .equals(selectedChannel.id)
           .toArray();

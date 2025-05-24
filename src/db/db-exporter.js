@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import db from './db'; // your Dexie DB instance
+import db from '../db'; // your Dexie DB instance
 
 export async function exportDBToZip() {
   const zip = new JSZip();

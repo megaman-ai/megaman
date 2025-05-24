@@ -1,3 +1,4 @@
+import db from '../../db/db';
 import { useEffect, useState, useCallback } from 'react';
 
 // Status enum to track application state
@@ -13,6 +14,7 @@ const Status = Object.freeze({
 });
 
 const SlackCollector = ({openDashboardHandler}) => {
+  const [currentUrl, setCurrentUrl] = useState('');
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState(Status.INITIAL);
   const [channelList, setChannelList] = useState([]);
@@ -25,22 +27,33 @@ const SlackCollector = ({openDashboardHandler}) => {
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
 
   useEffect(() => {
+    const retrieveUrl = async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab.id) {
+            setCurrentUrl(tab.url);
+        }
+    }
+    retrieveUrl();
+  }, []);
+
+  useEffect(() => {
     channelList.forEach(async (channel) => {
       try {
-        await db.channels.add({
+        await db.messengerChannels.add({
           id: channel.id,
           name: channel.name,
-          team: channel.team
+          team: channel.team,
+          webpageId: currentUrl
         });
       } catch (error) {
         if (error.name === 'ConstraintError') {
-          console.warn('Key already exists:', error);
         } else {
           console.warn('Error adding channel to DB:', error);
+          console.log('channel', channel);
         }
       }
     });
-  }, [channelList]);
+  }, [channelList, currentUrl]);
 
   useEffect(() => {
     if (currentChannel) {
@@ -93,35 +106,38 @@ const SlackCollector = ({openDashboardHandler}) => {
     console.log('postItems', postItems);
     postItems.forEach(async (item) => {
       try {
-        await db.posts.add({
-          id: item.id,
-          channelId: currentChannel.id,
-          html: item.html
-        });
+        if (item && item.id) {
+            await db.messengerPosts.add({
+                id: item.id,
+                channelId: currentChannel.id,
+                html: item.html ? item.html : '',
+            });
+        }
       } catch (error) {
         if (error.name === 'ConstraintError') {
-          console.warn('Key already exists:', error);
         } else {
-          console.warn('Error adding channel to DB:', error);
+          console.warn('Error adding post to DB:', error);
+          console.log('item', item);
         }
       }
     });
   }, [postItems]);
 
   useEffect(() => {
-    console.log('threadContentItems', threadContentItems);
     threadContentItems.forEach(async (item) => {
       try {
-        await db.threads.add({
-          id: item.id,
-          channelId: currentChannel.id,
-          html: item.html
-        });
+        if (item && item.id) {
+            await db.messengerThreads.add({
+                id: item.id,
+                channelId: currentChannel.id,
+                html: item.html ? item.html : '',
+            });
+        }
       } catch (error) {
         if (error.name === 'ConstraintError') {
-          console.warn('Key already exists:', error);
         } else {
-          console.warn('Error adding channel to DB:', error);
+          console.warn('Error adding thread to DB:', error);
+          console.log('item', item);
         }
       }
     });
@@ -142,20 +158,25 @@ const SlackCollector = ({openDashboardHandler}) => {
       // Convert NodeList to Array and extract content
       const items = Array.from(childDivs).map((div) => {
         const divId = div.getAttribute('id');
-        const matches = divId.match(/\d+\.\d+/g);
-        if (matches && matches.length >= 2) {
-          const thread_id = matches[0];
-          const thread_content_id = matches[1];
-          if (thread_id === thread_content_id) {
-            console.log("thread_id and thread_content_id are equal. Reached the top of the thread.");
-            reachedEnd = true;
-          }
+        if (divId) {
+            const matches = divId.match(/\d+\.\d+/g);
+            if (matches && matches.length >= 2) {
+            const thread_id = matches[0];
+            const thread_content_id = matches[1];
+            if (thread_id === thread_content_id) {
+                console.log("thread_id and thread_content_id are equal. Reached the top of the thread.");
+                reachedEnd = true;
+            }
+            }
+            return {
+                id: divId,
+                html: div.outerHTML,
+                text: div.textContent.trim()
+            };
+        } else {
+            console.log("No divId found", div);
+            return {}
         }
-        return {
-          id: divId,
-          html: div.outerHTML,
-          text: div.textContent.trim()
-        };
       });
       setThreadContentItems(items);
       if (!reachedEnd) {
@@ -497,41 +518,56 @@ const SlackCollector = ({openDashboardHandler}) => {
   };
 
   const getChannelList = async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab.id) {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          let channelPanelList = document.querySelectorAll('.p-channel_sidebar__channel');
-          let teamName = document.querySelector('.p-ia4_home_header_menu__team_name');
-          if (channelPanelList && channelPanelList.length > 0) {
-            const items = Array.from(channelPanelList).map((channel) => {
-              const channelId = channel.getAttribute('data-qa-channel-sidebar-channel-id');
-              const channelName = channel.textContent.trim();
-              return {
-                id: channelId,
-                name: channelName,
-                team: teamName ? teamName.textContent.trim() : null
-              };
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab.id) {
+            try {
+                await db.webpage.add({
+                    id: currentUrl,
+                    title: 'Slack Web App',
+                    icon: '',
+                    bannerImgae: '',
+                    metadata: '',
+                    source: 'slack'
+                });
+            } catch (error) {
+                if (error.name === 'ConstraintError') {
+                } else {
+                    console.warn('Error adding webpage to DB:', error);
+                }
+            }
+            const results = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                    let channelPanelList = document.querySelectorAll('.p-channel_sidebar__channel');
+                    let teamName = document.querySelector('.p-ia4_home_header_menu__team_name');
+                    if (channelPanelList && channelPanelList.length > 0) {
+                        const items = Array.from(channelPanelList).map((channel) => {
+                            const channelId = channel.getAttribute('data-qa-channel-sidebar-channel-id');
+                            const channelName = channel.textContent.trim();
+                            return {
+                                id: channelId,
+                                name: channelName,
+                                team: teamName ? teamName.textContent.trim() : null
+                            };
+                        });
+                        return items;
+                    } else {
+                        return null;
+                    }
+                }
             });
-            return items;
-          } else {
-            return null;
-          }
+            if (results && results[0] && results[0].result) {
+                const channelInfo = results[0].result;
+                setChannelList(channelInfo);
+                channelInfo.forEach((channel) => {
+                if (tab.url.includes(channel.id)) {
+                    setCurrentChannel(channel);
+                }
+                });
+            } else {
+                console.log('No channel information found.');
+            }
         }
-      });
-      if (results && results[0] && results[0].result) {
-        const channelInfo = results[0].result;
-        setChannelList(channelInfo);
-        channelInfo.forEach((channel) => {
-          if (tab.url.includes(channel.id)) {
-            setCurrentChannel(channel);
-          }
-        });
-      } else {
-        console.log('No channel information found.');
-      }
-    }
   };
 
   const startCollecting = async () => {
@@ -675,7 +711,7 @@ const SlackCollector = ({openDashboardHandler}) => {
     )}
     {!collecting && (
         <h3 className='text-xl text-center'>
-            You are on Slack Web App. Press Collect to store information from Slack and view it in Dashboard 
+            You are on Slack Web App. Press Collect to store information from current Slack channel and view it in Dashboard 
         </h3>
     )}
     </div>
