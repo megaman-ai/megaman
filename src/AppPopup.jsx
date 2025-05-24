@@ -665,20 +665,36 @@ function AppPopup() {
       <Header title={'Megaman'} />
       <div className="card">
         <h2 className='text-2xl'>{currentChannel ? `${currentChannel.team} - ${currentChannel.name}` : ''}</h2>
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
-          onClick={startCollecting}
-          disabled={collecting}
-        >
-          {collecting ? 'Collecting...' : 'Start Collecting'}
-        </button>
+        <div className="flex justify-evenly my-2"> {/* Added flex container */}
+          <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-xl"
+            onClick={startCollecting}
+            disabled={collecting}
+          >
+            {collecting ? 'Collecting...' : 'Start'}
+          </button>
+          <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-xl"
+            onClick={viewSlackDB}
+            disabled={collecting}
+          >
+            View
+          </button>
+        </div>
 
+        <div className="mt-4 flex items-center justify-center">
         {collecting && (
-          <div className="mt-4 flex items-center justify-center">
+          <>
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             <span className="ml-2 text-blue-500 font-semibold">Collection in progress... please don't close this extension.</span>
-          </div>
+          </>
         )}
+        {!collecting && (
+          <h3 className='text-xl text-center'>
+            Press Start to collect and save slack data then you can view later offline
+          </h3>
+        )}
+        </div>
 
         <div className="mt-2">
           {status === Status.START_COLLECT_POST && <p>Getting posts...</p>}
@@ -689,27 +705,6 @@ function AppPopup() {
           {status === Status.WAITING_FOR_PROCESS && <p>Processing...</p>}
           {status === Status.END && <p>Collection complete!</p>}
         </div>
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
-          onClick={viewSlackDB}
-          disabled={collecting}
-        >
-          View Collected Data
-        </button>
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
-          onClick={exportDBToZip}
-          disabled={collecting}
-        >
-          Export DB to ZIP
-        </button>
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-2 rounded"
-          onClick={importDBFromZip}
-          disabled={collecting}
-        >
-          Import DB from ZIP
-        </button>
       </div>
     </>
   )
