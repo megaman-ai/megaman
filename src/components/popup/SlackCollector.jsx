@@ -103,7 +103,6 @@ const SlackCollector = ({openDashboardHandler}) => {
   }, [postListHtml]);
 
   useEffect(() => {
-    console.log('postItems', postItems);
     postItems.forEach(async (item) => {
       try {
         if (item && item.id) {
@@ -144,8 +143,7 @@ const SlackCollector = ({openDashboardHandler}) => {
   }, [threadContentItems]);
 
   useEffect(() => {
-    console.log('parse threadListHtml');
-    if (threadListHtml) {
+    if (threadListHtml && threadListHtml !== '') {
       // Parse the HTML string into a DOM object
       const parser = new DOMParser();
       const doc = parser.parseFromString(threadListHtml, 'text/html');
@@ -384,7 +382,6 @@ const SlackCollector = ({openDashboardHandler}) => {
   useEffect(() => {
     switch (status) {
       case Status.INITIAL:
-        console.log('INITIAL');
         break;
       case Status.START_COLLECT_POST:
         console.log('START');
