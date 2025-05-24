@@ -29,6 +29,21 @@ function AppPopup() {
   const [threadContentItems, setThreadContentItems] = useState([]);
   const [threadCount, setThreadCount] = useState(0);
   const [currentThreadIndex, setCurrentThreadIndex] = useState(-1);
+  const [webpageSource, setWebpageSource] = useState("");
+
+  useEffect(() => {
+    const analyzeTabUrl = async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab.url) {
+        const url = new URL(tab.url);
+        const host = url.hostname;
+        if (host.includes('app.slack.com')) {
+          setWebpageSource('slack');
+        }
+      }
+    }
+    analyzeTabUrl();
+  }, []);
 
   useEffect(() => {
     channelList.forEach(async (channel) => {
@@ -504,7 +519,6 @@ function AppPopup() {
   };
 
   const getChannelList = async () => {
-    console.log('getChannelList');
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab.id) {
       const results = await chrome.scripting.executeScript({
@@ -667,18 +681,18 @@ function AppPopup() {
         <h2 className='text-2xl'>{currentChannel ? `${currentChannel.team} - ${currentChannel.name}` : ''}</h2>
         <div className="flex justify-evenly my-2"> {/* Added flex container */}
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-xl"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-l cursor-pointer"
             onClick={startCollecting}
             disabled={collecting}
           >
-            {collecting ? 'Collecting...' : 'Start'}
+            {collecting ? 'Collecting...' : 'Collect'}
           </button>
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-xl"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-l cursor-pointer"
             onClick={viewSlackDB}
             disabled={collecting}
           >
-            View
+            Dashboard
           </button>
         </div>
 
@@ -690,9 +704,15 @@ function AppPopup() {
           </>
         )}
         {!collecting && (
-          <h3 className='text-xl text-center'>
-            Press Start to collect and save slack data then you can view later offline
-          </h3>
+          webpageSource === 'slack' ? (
+            <h3 className='text-xl text-center'>
+              You are on Slack Web App. Press Collect to store information from Slack and view it in Dashboard 
+            </h3>
+          ) : (
+            <h3 className='text-xl text-center'>
+              We could not recognize the webpage source. We will collect information from the webpage then you can search later.
+            </h3>
+          )
         )}
         </div>
 
